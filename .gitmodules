@@ -2,3 +2,7 @@
 	path = libhermit-rs
 	url = https://github.com/duanyu-yu/libhermit-rs.git
 	ignore = all
+[submodule "DeviceTree"]
+	path = DeviceTree
+	url = git@github.com:duanyu-yu/DeviceTree.git
+	ignore = all
