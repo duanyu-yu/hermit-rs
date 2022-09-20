@@ -7,5 +7,6 @@ members = [
     "examples/hello_world",
     "examples/httpd",
     "examples/demo",
+    "DeviceTree/device-tree"
 ]
 exclude = ["target", "libhermit-rs"]
