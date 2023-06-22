@@ -54,7 +54,7 @@ pub fn pi_sequential(num_steps: u64) -> Result<(), ()> {
 	}
 
 	let mypi = sum * (1.0 / num_steps as f64);
-	println!("Pi: {} (sequential)", mypi);
+	println!("Pi: {mypi} (sequential)");
 
 	if (mypi - PI).abs() < 0.00001 {
 		Ok(())
@@ -82,7 +82,7 @@ pub fn pi_parallel(num_steps: u64) -> Result<(), ()> {
 	});
 
 	let mypi = sum * (1.0 / num_steps as f64);
-	println!("Pi: {} (with {} threads)", mypi, ncpus);
+	println!("Pi: {mypi} (with {ncpus} threads)");
 
 	if (mypi - PI).abs() < 0.00001 {
 		Ok(())
@@ -96,7 +96,7 @@ pub fn read_file() -> Result<(), std::io::Error> {
 	let mut contents = String::new();
 	file.read_to_string(&mut contents)?;
 
-	println!("Hostname: {}", contents);
+	println!("Hostname: {contents}");
 
 	Ok(())
 }
@@ -107,19 +107,20 @@ pub fn create_file() -> Result<(), std::io::Error> {
 		file.write_all(b"Hello, world!")?;
 	}
 
-	let contents = {
+	let content = {
 		let mut file = File::open("foo.txt")?;
-		let mut contents = String::new();
-		file.read_to_string(&mut contents)?;
-		contents
+		let mut content = String::new();
+		file.read_to_string(&mut content)?;
+		content
 	};
 
 	// delete temporary file
 	std::fs::remove_file("foo.txt")?;
 
-	if contents == "Hello, world!" {
+	if content == "Hello, world!" {
 		Ok(())
 	} else {
+		println!("Read invalid content: {} (len {})", content, content.len());
 		let kind = std::io::ErrorKind::Other;
 		Err(std::io::Error::from(kind))
 	}
@@ -130,7 +131,7 @@ pub fn print_argv() -> Result<(), ()> {
 
 	// Prints each argument on a separate line
 	for (i, argument) in args.enumerate() {
-		println!("argument[{}] = {}", i, argument);
+		println!("argument[{i}] = {argument}");
 	}
 
 	Ok(())
@@ -142,7 +143,7 @@ pub fn print_env() -> Result<(), ()> {
 	// We will iterate through the references to the element returned by
 	// env::vars();
 	for (key, value) in envs {
-		println!("{}: {}", key, value);
+		println!("{key}: {value}");
 	}
 
 	Ok(())
@@ -169,7 +170,7 @@ pub fn arithmetic() -> Result<(), ()> {
 	let y: f64 = x.exp();
 	let z: f64 = y.log(E);
 
-	println!("x = {}, e^x = {}, ln(e^x) = {}", x, y, z);
+	println!("x = {x}, e^x = {y}, ln(e^x) = {z}");
 
 	Ok(())
 }
@@ -181,7 +182,7 @@ pub fn threading() -> Result<(), ()> {
 	for i in 0..2 {
 		// Spin up another thread
 		children.push(thread::spawn(move || {
-			println!("this is thread number {}", i);
+			println!("this is thread number {i}");
 		}));
 	}
 
