@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `benches/netbench/src/connection.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>connection.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><a class="sidebar-logo" href="../../rust_tcp_io_perf/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../rust_tcp_io_perf/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
+<span id="2">2</span>
+<span id="3">3</span>
+<span id="4">4</span>
+<span id="5">5</span>
+<span id="6">6</span>
+<span id="7">7</span>
+<span id="8">8</span>
+<span id="9">9</span>
+<span id="10">10</span>
+<span id="11">11</span>
+<span id="12">12</span>
+<span id="13">13</span>
+<span id="14">14</span>
+<span id="15">15</span>
+<span id="16">16</span>
+<span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
+<span id="39">39</span>
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
+<span id="44">44</span>
+<span id="45">45</span>
+<span id="46">46</span>
+<span id="47">47</span>
+<span id="48">48</span>
+<span id="49">49</span>
+<span id="50">50</span>
+<span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::config::Config;
+<span class="kw">use </span>std::io;
+<span class="kw">use </span>std::io::ErrorKind::WouldBlock;
+<span class="kw">use </span>std::io::{Read, Write};
+<span class="kw">use </span>std::net::Shutdown;
+<span class="kw">use </span>std::net::TcpListener;
+<span class="kw">use </span>std::net::TcpStream;
+<span class="kw">use </span>std::net::ToSocketAddrs;
+
+<span class="doccomment">/// Sends first n_bytes from wbuf using the given stream.
+/// Make sure wbuf.len &gt;= n_bytes
+</span><span class="kw">pub fn </span>send_message(n_bytes: usize, stream: <span class="kw-2">&amp;mut </span>TcpStream, wbuf: <span class="kw-2">&amp;</span>[u8]) {
+	<span class="kw">let </span><span class="kw-2">mut </span>send = <span class="number">0</span>;
+	<span class="kw">while </span>send &lt; n_bytes {
+		<span class="kw">match </span>stream.write(<span class="kw-2">&amp;</span>wbuf[send..]) {
+			<span class="prelude-val">Ok</span>(n) =&gt; send += n,
+			<span class="prelude-val">Err</span>(err) =&gt; <span class="kw">match </span>err.kind() {
+				WouldBlock =&gt; {}
+				<span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Error occurred while writing: {:?}&quot;</span>, err),
+			},
+		}
+	}
+}
+
+<span class="doccomment">/// Reads n_bytes into rbuf from the given stream.
+/// Make sure rbuf.len &gt;= n_bytes
+</span><span class="kw">pub fn </span>receive_message(n_bytes: usize, stream: <span class="kw-2">&amp;mut </span>TcpStream, rbuf: <span class="kw-2">&amp;mut </span>[u8]) {
+	<span class="comment">// Make sure we receive the full buf back
+	</span><span class="kw">let </span><span class="kw-2">mut </span>recv = <span class="number">0</span>;
+	<span class="kw">while </span>recv &lt; n_bytes {
+		<span class="kw">match </span>stream.read(<span class="kw-2">&amp;mut </span>rbuf[recv..]) {
+			<span class="prelude-val">Ok</span>(n) =&gt; recv += n,
+			<span class="prelude-val">Err</span>(err) =&gt; <span class="kw">match </span>err.kind() {
+				WouldBlock =&gt; {}
+				<span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Error occurred while reading: {:?}&quot;</span>, err),
+			},
+		}
+	}
+}
+
+<span class="doccomment">/// Setup the streams and eventually pins the thread according to the configuration.
+</span><span class="kw">pub fn </span>setup(config: <span class="kw-2">&amp;</span>Config, stream: <span class="kw-2">&amp;mut </span>TcpStream) {
+	<span class="kw">if </span>config.no_delay {
+		stream
+			.set_nodelay(<span class="bool-val">true</span>)
+			.expect(<span class="string">&quot;Can&#39;t set no_delay to true&quot;</span>);
+	}
+	<span class="kw">if </span>config.non_blocking {
+		stream
+			.set_nonblocking(<span class="bool-val">true</span>)
+			.expect(<span class="string">&quot;Can&#39;t set channel to be non-blocking&quot;</span>);
+	}
+}
+
+<span class="kw">pub fn </span>client_connect&lt;A: ToSocketAddrs&gt;(addr: A) -&gt; io::Result&lt;TcpStream&gt; {
+	TcpStream::connect(addr)
+}
+
+<span class="kw">pub fn </span>close_connection(stream: <span class="kw-2">&amp;</span>TcpStream) {
+	stream
+		.shutdown(Shutdown::Both)
+		.expect(<span class="string">&quot;shutdown call failed&quot;</span>);
+}
+
+<span class="doccomment">/// Starts listening on given port and return first connection to that port as a stream.
+</span><span class="kw">pub fn </span>server_listen_and_get_first_connection(port: <span class="kw-2">&amp;</span>str) -&gt; TcpStream {
+	<span class="kw">let </span>listener = TcpListener::bind(<span class="string">&quot;0.0.0.0:&quot;</span>.to_owned() + port).unwrap();
+	<span class="macro">println!</span>(
+		<span class="string">&quot;Server running, listening for connection on 0.0.0.0:{}&quot;</span>,
+		port
+	);
+	<span class="kw">let </span>stream = listener.incoming().next().unwrap().unwrap();
+	<span class="macro">println!</span>(
+		<span class="string">&quot;Connection established with {:?}!&quot;</span>,
+		stream.peer_addr().unwrap()
+	);
+
+	stream
+}
+</code></pre></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="rust_tcp_io_perf" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0-nightly (a24a020e6 2022-10-18)" ></div></body></html>
