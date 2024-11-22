@@ -110,6 +110,7 @@ impl KernelSrc {
 				"dhcpv4",
 				"dns",
 				"fs",
+				"fdt",
 				"fsgsbase",
 				"idle-poll",
 				"mmap",

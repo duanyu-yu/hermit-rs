@@ -30,6 +30,7 @@ default = [
 acpi = []
 dhcpv4 = []
 dns = []
+fdt = []
 fs = []
 fsgsbase = []
 idle-poll = []
